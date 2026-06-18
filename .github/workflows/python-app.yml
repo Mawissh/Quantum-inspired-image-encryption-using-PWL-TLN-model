@@ -37,6 +37,6 @@ jobs:
     - name: Test with pytest
       run: |
         pytest || code=$?
-        if [ "${code:-0}" -ne 0 ] && [ "${code}" -ne 5 ]; then
-          exit "${code}"
+        if [ "${code:-0}" -ne 0 ] && [ "${code:-0}" -ne 5 ]; then
+          exit "${code:-0}"
         fi
