@@ -439,67 +439,6 @@ def estimate_max_lyapunov_tln(
         perturbed = state + delta0 * separation / distance
 
     return float(log_growth / elapsed)
-
-
-def local_maxima(series) -> np.ndarray:
-    """Return local maxima values from a one-dimensional time series."""
-    series = np.asarray(series, dtype=float)
-    if len(series) < 3:
-        return np.array([], dtype=float)
-    mask = (series[1:-1] > series[:-2]) & (series[1:-1] >= series[2:])
-    return series[1:-1][mask]
-
-
-def parameter_plane_lyapunov_grid(
-    x_name: str,
-    x_values,
-    y_name: str,
-    y_values,
-    base_params=None,
-    initial_state=(-0.54, -0.1, 0.0, 0.0),
-    steps: int = 1000,
-    dt: float = 0.005,
-    burn_in: int = 200,
-    continuation: bool = False,
-    reverse_x: bool = False,
-    reverse_y: bool = False,
-) -> np.ndarray:
-    """Compute a maximum-Lyapunov grid for a two-parameter Section 2.2 chart."""
-    if base_params is None:
-        base_params = create_tln_parameters()
-
-    x_values = np.asarray(x_values, dtype=float)
-    y_values = np.asarray(y_values, dtype=float)
-    grid = np.zeros((len(y_values), len(x_values)), dtype=float)
-
-    x_order = list(range(len(x_values)))
-    y_order = list(range(len(y_values)))
-    if reverse_x:
-        x_order = x_order[::-1]
-    if reverse_y:
-        y_order = y_order[::-1]
-
-    row_initial = np.asarray(initial_state, dtype=float)
-    for row_index in y_order:
-        current_state = row_initial.copy()
-        for col_index in x_order:
-            params = dict(base_params)
-            params[x_name] = float(x_values[col_index])
-            params[y_name] = float(y_values[row_index])
-            grid[row_index, col_index] = estimate_max_lyapunov_tln(
-                current_state,
-                params,
-                steps=steps,
-                dt=dt,
-                burn_in=burn_in,
-            )
-            if continuation:
-                _, short_trajectory = simulate_tln(current_state, params=params, steps=max(50, steps // 4), dt=dt)
-                current_state = short_trajectory[-1]
-        if continuation:
-            row_initial = current_state
-
-    return grid
 def one_parameter_bifurcation_scan(
     parameter_name: str,
     values,
@@ -580,11 +519,7 @@ class SBoxChromosome:
     moora_score: float = -1e9
     sbox: np.ndarray | None = None
     metrics: dict | None = None
-
-
-_INVERSE_TABLE_CACHE: dict[tuple[int, int], np.ndarray] = {}
-
-
+INVERSE_TABLE_CACHE: dict[tuple[int, int], np.ndarray] = {}
 def gf_multiply(a: int, b: int, poly: int, n_bits: int = 8) -> int:
     """Multiply in GF(2^n) under the given irreducible polynomial."""
     result = 0
@@ -743,8 +678,6 @@ def sac_offset(sbox, n_bits: int = 8) -> float:
             flips = sum(((int(sbox[x]) ^ int(sbox[x ^ delta])) >> output_bit) & 1 for x in range(size))
             deviations.append(abs(flips / size - 0.5))
     return float(np.mean(deviations))
-
-
 def bic_metrics(sbox, n_bits: int = 8) -> tuple[int, float]:
     """BIC nonlinearity and BIC-SAC deviation for pairwise output-bit XORs."""
     sbox = np.asarray(sbox, dtype=np.uint16)
@@ -929,23 +862,6 @@ def initialize_tqcoblah_population(params: TQCOBLAHParameters, seed: int = 7) ->
     for chromosome, score in zip(population, scores):
         chromosome.moora_score = float(score)
     return select_top_chromosomes(population, params.population_size)
-
-def apply_generation_jumping(
-    population: list[SBoxChromosome],
-    best: SBoxChromosome,
-    mode: str,
-    rng,
-    params: TQCOBLAHParameters,
-    weights: dict[str, float],
-) -> list[SBoxChromosome]:
-    """Adaptive QOBL/COOBL generation jumping from Section 2.3.4."""
-    candidates = list(population)
-    scores = moora_scores(candidates, weights)
-    for chromosome, score in zip(candidates, scores):
-        chromosome.moora_score = float(score)
-    return select_top_chromosomes(candidates, params.population_size)
-
-
 def run_tqcoblah_sbox(seed: int = 7, params: TQCOBLAHParameters | None = None) -> tuple[np.ndarray, SBoxChromosome]:
     """Algorithm 3: modified GA with adaptive MOORA and OBL generation jumping."""
     if params is None:
