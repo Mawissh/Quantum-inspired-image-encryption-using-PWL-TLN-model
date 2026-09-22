@@ -145,8 +145,8 @@ class ESOPCover:
     def add_cubes(self, cubes) -> None:
         for cube in cubes:
             self.add_cube(cube)
-   
-   def evaluate_assignment(self, assignment: int) -> int:
+
+    def evaluate_assignment(self, assignment: int) -> int:
         value = 0
         for cube in self.cubes:
             if cube.matches(assignment):
