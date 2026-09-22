@@ -207,7 +207,7 @@ def decode_neqr_statevector(qc, q: int, image_shape, atol: float = 1e-9):
         raise AssertionError(f"Address probabilities are not uniform:\n{probabilities}")
 
     return recovered, probabilities
-  def madd_gate(n: int, coeff: int = 1, label: str | None = None):
+def madd_gate(n: int, coeff: int = 1, label: str | None = None):
     """Functional modular-adder primitive used by IGQAT.
 
     The action is:
